@@ -17,6 +17,9 @@ enum Msg {
     NewShape,
     SubmitShape,
     ValueChanged { key: String, value: String },
+    SaveToJson,
+    LoadFromJson,
+    JsonChanged { value: String },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -34,6 +37,7 @@ struct App {
     is_dragging: bool,
     last_cursor_pos: (f64, f64),
     resize_anchor: (f64, f64),
+    json: String,
 }
 
 impl Component for App {
@@ -48,6 +52,7 @@ impl Component for App {
             is_dragging: false,
             last_cursor_pos: (0.0, 0.0),
             resize_anchor: (0.0, 0.0),
+            json: String::new(),
         }
     }
 
@@ -168,6 +173,16 @@ impl Component for App {
                 <div>
                     <button onclick={ctx.link().callback(|_| Msg::ClearScreen)}>{"Clear"}</button>
                     <button onclick={ctx.link().callback(|_| Msg::NewShape)}>{"New"}</button>
+                    <button onclick={ctx.link().callback(|_| Msg::SaveToJson)}>{"Save"}</button>
+                    <button onclick={ctx.link().callback(|_| Msg::LoadFromJson)}>{"Load"}</button>
+                </div>
+                <div>
+                    <span>{"JSON: "}</span>
+                    <textarea id="json" 
+                        width="800" 
+                        height="600" 
+                        onchange={ctx.link().callback(|e: Event| Msg::JsonChanged {value: e.target_unchecked_into::<HtmlInputElement>().value()})} 
+                        value={self.json.clone()}/>
                 </div>
             </div>
         }
@@ -293,7 +308,26 @@ impl Component for App {
                 self.shape_storage.submit_shape();
 
                 true
-            },
+            }
+            Msg::SaveToJson => {
+                self.json = self.shape_storage.serialize_to_json();
+
+                true
+            }
+            Msg::LoadFromJson => {
+                if self.json.is_empty() {
+                    return false;
+                }
+
+                self.shape_storage.deserialize_from_json(&self.json);
+
+                true
+            }
+            Msg::JsonChanged { value } => {
+                self.json = value;
+
+                true
+            }
         }
     }
 

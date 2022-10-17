@@ -1,4 +1,5 @@
 use core::fmt;
+use std::str::FromStr;
 
 use wasm_bindgen::JsValue;
 
@@ -29,6 +30,29 @@ pub enum ShapeState {
     New,
     Drawing,
     Complete,
+}
+
+impl fmt::Display for ShapeState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ShapeState::New => write!(f, "New"),
+            ShapeState::Drawing => write!(f, "Drawing"),
+            ShapeState::Complete => write!(f, "Complete"),
+        }
+    }
+}
+
+impl FromStr for ShapeState {
+    type Err = JsValue;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "New" => Ok(ShapeState::New),
+            "Drawing" => Ok(ShapeState::Drawing),
+            "Complete" => Ok(ShapeState::Complete),
+            _ => Err(JsValue::from_str("Invalid shape state")),
+        }
+    }
 }
 
 pub trait Shape {
@@ -63,6 +87,9 @@ pub trait Shape {
     fn move_by(&mut self, x: f64, y: f64);
     fn resize(&mut self, change: (f64, f64), origin: (f64, f64));
     fn set_state(&mut self, state: ShapeState);
+
+    fn get_json(&self) -> String;
+    fn from_json(&mut self, json: &str);
 }
 
 pub struct ShapeStorage {
@@ -182,6 +209,37 @@ impl ShapeStorage {
             if shape.get_end().is_some() && shape.get_origin().is_some() {
                 shape.set_state(ShapeState::Complete);            
             }
+        }
+    }
+
+    pub fn serialize_to_json(&self) -> String {
+        let mut json = String::new();
+        json.push_str("[");
+        for shape in self.shapes.iter() {
+            json.push_str(&shape.get_json());
+            json.push_str(",");
+        }
+        json.pop();
+        json.push_str("]");
+
+        return json;
+    }
+
+    pub fn deserialize_from_json(&mut self, json: &str) {
+        log::info!("Deserializing from json: {}", json);
+        let json_vec: Vec<serde_json::Value> = serde_json::from_str(json).unwrap();
+        for shape_json in json_vec.iter() {
+            let shape_type = shape_json["type"].as_str().unwrap();
+            let shape_type = match shape_type {
+                "line" => ShapeType::Line,
+                "rectangle" => ShapeType::Rectangle,
+                "circle" => ShapeType::Circle,
+                _ => panic!("Unknown shape type"),
+            };
+
+            let mut shape = ShapeStorage::create_helper(shape_type);
+            shape.from_json(&shape_json.to_string());
+            self.shapes.push(shape);
         }
     }
 

@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use super::shape::{Shape, ShapeState, ShapeType, ORIGIN_X_KEY, ORIGIN_Y_KEY};
 
 pub const WIDTH_KEY: &str = "Width";
@@ -220,5 +222,37 @@ impl Shape for Rectangle {
 
     fn set_state(&mut self, state: ShapeState) {
         self.state = state;
+    }
+
+    fn get_json(&self) -> String {
+        let mut map = serde_json::Map::new();
+        map.insert("type".to_string(), "rectangle".to_string().into());
+        map.insert("state".to_string(), self.state.to_string().into());
+        if let Some((ox, oy)) = self.origin {
+            map.insert("origin_x".to_string(), ox.to_string().into());
+            map.insert("origin_y".to_string(), oy.to_string().into());
+        }
+        map.insert("width".to_string(), self.width.to_string().into());
+        map.insert("height".to_string(), self.height.to_string().into());
+
+        return serde_json::to_string(&map).unwrap();
+    }
+
+    fn from_json(&mut self, json: &str) {
+        let map: serde_json::Map<String, serde_json::Value> = serde_json::from_str(json).unwrap();
+        if let Some(serde_json::Value::String(state)) = map.get("state") {
+            self.state = ShapeState::from_str(state).unwrap();
+        }
+        if let Some(serde_json::Value::Number(ox)) = map.get("origin_x") {
+            if let Some(serde_json::Value::Number(oy)) = map.get("origin_y") {
+                self.origin = Some((ox.as_f64().unwrap(), oy.as_f64().unwrap()));
+            }
+        }
+        if let Some(serde_json::Value::Number(width)) = map.get("width") {
+            self.width = width.as_f64().unwrap();
+        }
+        if let Some(serde_json::Value::Number(height)) = map.get("height") {
+            self.height = height.as_f64().unwrap();
+        }
     }
 }

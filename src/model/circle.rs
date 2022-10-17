@@ -1,4 +1,4 @@
-use std::f64::consts;
+use std::{f64::consts, str::FromStr};
 
 use super::shape::{Shape, ShapeState, ShapeType, ORIGIN_X_KEY, ORIGIN_Y_KEY};
 
@@ -156,5 +156,47 @@ impl Shape for Circle {
 
     fn set_state(&mut self, state: ShapeState) {
         self.state = state;
+    }
+
+    fn get_json(&self) -> String {
+        let mut map = serde_json::Map::new();
+        map.insert("type".to_string(), serde_json::Value::String("circle".to_string()));
+        map.insert("state".to_string(), serde_json::Value::String(self.state.to_string()));
+        map.insert(
+            "origin".to_string(),
+            serde_json::Value::Array(vec![
+                serde_json::Value::Number(serde_json::Number::from_f64(self.origin.unwrap().0).unwrap()),
+                serde_json::Value::Number(serde_json::Number::from_f64(self.origin.unwrap().1).unwrap()),
+            ]),
+        );
+        map.insert(
+            "radius".to_string(),
+            serde_json::Value::Number(serde_json::Number::from_f64(self.radius).unwrap()),
+        );
+
+        serde_json::to_string(&map).unwrap()
+    }
+
+    fn from_json(&mut self, json: &str) {
+        let map: serde_json::Map<String, serde_json::Value> = serde_json::from_str(json).unwrap();
+        if let Some(origin) = map.get("origin") {
+            if let Some(origin) = origin.as_array() {
+                let x = origin[0].as_f64().unwrap();
+                let y = origin[1].as_f64().unwrap();
+                self.origin = Some((x, y));
+            }
+        }
+
+        if let Some(radius) = map.get("radius") {
+            if let Some(radius) = radius.as_f64() {
+                self.radius = radius;
+            }
+        }
+
+        if let Some(state) = map.get("state") {
+            if let Some(state) = state.as_str() {
+                self.state = ShapeState::from_str(state).unwrap();
+            }
+        }
     }
 }

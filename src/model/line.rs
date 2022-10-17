@@ -184,4 +184,34 @@ impl Shape for Line {
     fn set_state(&mut self, state: ShapeState) {
         self.state = state;
     }
+
+    fn get_json(&self) -> String {
+        let mut map = serde_json::Map::new();
+        map.insert("type".to_string(), serde_json::Value::String("line".to_string()));
+        map.insert("state".to_string(), serde_json::Value::String(self.state.to_string()));
+        if let Some((ox, oy)) = self.origin {
+            map.insert("origin_x".to_string(), serde_json::Value::Number(serde_json::Number::from_f64(ox).unwrap()));
+            map.insert("origin_y".to_string(), serde_json::Value::Number(serde_json::Number::from_f64(oy).unwrap()));
+        }
+        if let Some((ex, ey)) = self.end {
+            map.insert("end_x".to_string(), serde_json::Value::Number(serde_json::Number::from_f64(ex).unwrap()));
+            map.insert("end_y".to_string(), serde_json::Value::Number(serde_json::Number::from_f64(ey).unwrap()));
+        }
+
+        return serde_json::to_string(&map).unwrap();
+    }
+
+    fn from_json(&mut self, json: &str) {
+        let map: serde_json::Map<String, serde_json::Value> = serde_json::from_str(json).unwrap();
+        if let Some(serde_json::Value::Number(ox)) = map.get("origin_x") {
+            if let Some(serde_json::Value::Number(oy)) = map.get("origin_y") {
+                self.origin = Some((ox.as_f64().unwrap(), oy.as_f64().unwrap()));
+            }
+        }
+        if let Some(serde_json::Value::Number(ex)) = map.get("end_x") {
+            if let Some(serde_json::Value::Number(ey)) = map.get("end_y") {
+                self.end = Some((ex.as_f64().unwrap(), ey.as_f64().unwrap()));
+            }
+        }
+    }
 }

@@ -7,7 +7,19 @@ edition = "2021"
 
 [dependencies]
 yew = "0.19.3"
-web-sys = "0.3.60"
-
 log = "0.4.6"
 wasm-logger = "0.2.0"
+wasm-bindgen = "0.2.83"
+
+[dependencies.web-sys]
+version = "0.3.60"
+features = [
+    "Element", 
+    "EventTarget",
+    "HtmlElement", 
+    "Node",
+
+    "Window",
+    "HtmlCanvasElement",
+    "CanvasRenderingContext2d"
+]

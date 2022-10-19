@@ -169,7 +169,7 @@ impl Shape for Rectangle {
 
         let (y1, y2) = if ey > oy { (oy, ey) } else { (ey, oy) };
 
-        let epsilon = 2.0;
+        let epsilon = 5.0;
         let (x, y) = origin;
         // detect which corner is being dragged
         if (x - x1).abs() < epsilon && (y - y1).abs() < epsilon {
@@ -229,11 +229,11 @@ impl Shape for Rectangle {
         map.insert("type".to_string(), "rectangle".to_string().into());
         map.insert("state".to_string(), self.state.to_string().into());
         if let Some((ox, oy)) = self.origin {
-            map.insert("origin_x".to_string(), ox.to_string().into());
-            map.insert("origin_y".to_string(), oy.to_string().into());
+            map.insert("origin_x".to_string(), ox.into());
+            map.insert("origin_y".to_string(), oy.into());
         }
-        map.insert("width".to_string(), self.width.to_string().into());
-        map.insert("height".to_string(), self.height.to_string().into());
+        map.insert("width".to_string(), self.width.into());
+        map.insert("height".to_string(), self.height.into());
 
         return serde_json::to_string(&map).unwrap();
     }

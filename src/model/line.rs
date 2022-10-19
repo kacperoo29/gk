@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use super::shape::{Shape, ShapeState, ShapeType, ORIGIN_X_KEY, ORIGIN_Y_KEY};
 
 pub const END_X_KEY: &str = "End x";
@@ -168,7 +170,7 @@ impl Shape for Line {
     }
 
     fn resize(&mut self, change: (f64, f64), origin: (f64, f64)) {
-        let epsilon = 2.0;
+        let epsilon = 5.0;
         if let Some((ox, oy)) = self.origin {
             if (ox - origin.0).abs() < epsilon && (oy - origin.1).abs() < epsilon {
                 self.origin = Some((ox + change.0, oy + change.1));
@@ -212,6 +214,9 @@ impl Shape for Line {
             if let Some(serde_json::Value::Number(ey)) = map.get("end_y") {
                 self.end = Some((ex.as_f64().unwrap(), ey.as_f64().unwrap()));
             }
+        }
+        if let Some(serde_json::Value::String(state)) = map.get("state") {
+            self.state = ShapeState::from_str(state).unwrap();
         }
     }
 }

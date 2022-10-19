@@ -350,6 +350,7 @@ impl Component for App {
 
         rendering_context.clear_rect(0.0, 0.0, canvas.width() as f64, canvas.height() as f64);
         for shape in self.shape_storage.get_shapes() {
+            log::info!("Drawing shape: {:?}", shape.get_state());
             if shape.is_drawable() {
                 shape.draw(&rendering_context);
             }

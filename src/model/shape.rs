@@ -229,6 +229,7 @@ impl ShapeStorage {
         log::info!("Deserializing from json: {}", json);
         let json_vec: Vec<serde_json::Value> = serde_json::from_str(json).unwrap();
         for shape_json in json_vec.iter() {
+            log::info!("Deserializing shape: {}", shape_json);
             let shape_type = shape_json["type"].as_str().unwrap();
             let shape_type = match shape_type {
                 "line" => ShapeType::Line,
@@ -240,6 +241,10 @@ impl ShapeStorage {
             let mut shape = ShapeStorage::create_helper(shape_type);
             shape.from_json(&shape_json.to_string());
             self.shapes.push(shape);
+        }
+
+        for shape in self.shapes.iter() {
+            log::info!("Deserialized shape: {}", shape.get_json());
         }
     }
 

@@ -174,7 +174,6 @@ impl Shape for Rectangle {
         // detect which corner is being dragged
         if (x - x1).abs() < epsilon && (y - y1).abs() < epsilon {
             // top left
-            log::info!("top left");
             self.origin = Some((ox + change.0, oy + change.1));
             self.width -= change.0;
             self.height -= change.1;

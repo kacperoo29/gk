@@ -130,8 +130,6 @@ impl Shape for Circle {
                 }
             }
             RADIUS_KEY => {
-                log::info!("Current radius: {}", self.radius);
-                log::info!("Setting radius to {}", value);
                 self.radius = value.parse().unwrap();
             }
             _ => {}

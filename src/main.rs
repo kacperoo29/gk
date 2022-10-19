@@ -311,6 +311,12 @@ impl Component for App {
             }
             Msg::SaveToJson => {
                 self.json = self.shape_storage.serialize_to_json();
+                let a = window().unwrap().document().unwrap().create_element("a").unwrap();
+                a.set_attribute("href", &format!("data:text/json;charset=utf-8,{}", self.json.clone())).unwrap();
+                a.set_attribute("download", "shapes.json").unwrap();
+                let a_element = a.dyn_into::<HtmlElement>().unwrap();
+                a_element.click();
+                a_element.remove();
 
                 true
             }
@@ -350,7 +356,6 @@ impl Component for App {
 
         rendering_context.clear_rect(0.0, 0.0, canvas.width() as f64, canvas.height() as f64);
         for shape in self.shape_storage.get_shapes() {
-            log::info!("Drawing shape: {:?}", shape.get_state());
             if shape.is_drawable() {
                 shape.draw(&rendering_context);
             }

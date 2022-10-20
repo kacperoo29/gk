@@ -1,5 +1,6 @@
 mod model;
 
+use gloo_events::EventListener;
 use model::shape::{ShapeState, ShapeStorage, ShapeType};
 use wasm_bindgen::{JsCast, prelude::Closure};
 use web_sys::*;
@@ -38,8 +39,7 @@ struct App {
     is_dragging: bool,
     last_cursor_pos: (f64, f64),
     resize_anchor: (f64, f64),
-    json: String,
-    file_cb: Callback<String>
+    json: String
 }
 
 impl Component for App {
@@ -55,7 +55,6 @@ impl Component for App {
             last_cursor_pos: (0.0, 0.0),
             resize_anchor: (0.0, 0.0),
             json: String::new(),
-            file_cb: ctx.link().callback(|value: String| Msg::LoadFromJson { value })
         }
     }
 
@@ -113,7 +112,7 @@ impl Component for App {
         let prop_list = prop_str.split("\n").filter(|str| !str.is_empty());
 
         let selected_shape = self.shape_storage.get_selected();
-
+        let file_cb = ctx.link().callback(|value: String| Msg::LoadFromJson { value });
         html! {
             <div id="container">
                 <div style="width: 100%;height: 620px; margin: 0">
@@ -179,21 +178,23 @@ impl Component for App {
                     <button onclick={ctx.link().callback(|_| Msg::SaveToJson)}>{"Save"}</button>
                     // <button onclick={ctx.link().callback(|_| Msg::LoadFromJson)}>{"Load"}</button>
                     <input type="file" onchange={ctx.link().callback(move |event: Event| {
+                        let file_cb = file_cb.clone();
                         let target = event.target().unwrap();
                         let target: web_sys::HtmlInputElement = target.dyn_into().unwrap();
                         let file = target.files().unwrap().get(0).unwrap();
                         let file_reader = web_sys::FileReader::new().unwrap();
                         file_reader.read_as_text(&file).unwrap();
-                        let closure = Closure::wrap(Box::new(move |event: Event| {
+                        log::info!("file: {:?}", file);
+                        let listener = EventListener::new(&file_reader, "load", move |event| {
+                            log::info!("event: {:?}", event);
                             let target = event.target().unwrap();
                             let target: web_sys::FileReader = target.dyn_into().unwrap();
                             let result = target.result().unwrap();
                             let result: String = result.as_string().unwrap();
-                            
-                            self.file_cb.clone().emit(result);
-                        }) as Box<dyn FnMut(Event)>);
-                        file_reader.add_event_listener_with_callback("load", closure.as_ref().unchecked_ref()).unwrap();
-                        
+                            file_cb.emit(result);
+                        });
+                        listener.forget();
+
                         Msg::None
                     })} />
                 </div>

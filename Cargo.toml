@@ -12,6 +12,7 @@ wasm-logger = "0.2.0"
 wasm-bindgen = "0.2.83"
 serde_json = "1.0"
 js-sys = "0.3.60"
+gloo-events = "0.1.2"
 
 [dependencies.web-sys]
 version = "0.3.60"

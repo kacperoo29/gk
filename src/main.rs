@@ -1,7 +1,7 @@
 mod model;
 
 use model::shape::{ShapeState, ShapeStorage, ShapeType};
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, prelude::Closure};
 use web_sys::*;
 use yew::prelude::*;
 
@@ -18,8 +18,9 @@ enum Msg {
     SubmitShape,
     ValueChanged { key: String, value: String },
     SaveToJson,
-    LoadFromJson,
+    LoadFromJson { value: String },
     JsonChanged { value: String },
+    None,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -38,13 +39,14 @@ struct App {
     last_cursor_pos: (f64, f64),
     resize_anchor: (f64, f64),
     json: String,
+    file_cb: Callback<String>
 }
 
 impl Component for App {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_ctx: &Context<Self>) -> Self {
+    fn create(ctx: &Context<Self>) -> Self {
         Self {
             shape_type: ShapeType::Line,
             shape_storage: ShapeStorage::new(),
@@ -53,6 +55,7 @@ impl Component for App {
             last_cursor_pos: (0.0, 0.0),
             resize_anchor: (0.0, 0.0),
             json: String::new(),
+            file_cb: ctx.link().callback(|value: String| Msg::LoadFromJson { value })
         }
     }
 
@@ -174,14 +177,32 @@ impl Component for App {
                     <button onclick={ctx.link().callback(|_| Msg::ClearScreen)}>{"Clear"}</button>
                     <button onclick={ctx.link().callback(|_| Msg::NewShape)}>{"New"}</button>
                     <button onclick={ctx.link().callback(|_| Msg::SaveToJson)}>{"Save"}</button>
-                    <button onclick={ctx.link().callback(|_| Msg::LoadFromJson)}>{"Load"}</button>
+                    // <button onclick={ctx.link().callback(|_| Msg::LoadFromJson)}>{"Load"}</button>
+                    <input type="file" onchange={ctx.link().callback(move |event: Event| {
+                        let target = event.target().unwrap();
+                        let target: web_sys::HtmlInputElement = target.dyn_into().unwrap();
+                        let file = target.files().unwrap().get(0).unwrap();
+                        let file_reader = web_sys::FileReader::new().unwrap();
+                        file_reader.read_as_text(&file).unwrap();
+                        let closure = Closure::wrap(Box::new(move |event: Event| {
+                            let target = event.target().unwrap();
+                            let target: web_sys::FileReader = target.dyn_into().unwrap();
+                            let result = target.result().unwrap();
+                            let result: String = result.as_string().unwrap();
+                            
+                            self.file_cb.clone().emit(result);
+                        }) as Box<dyn FnMut(Event)>);
+                        file_reader.add_event_listener_with_callback("load", closure.as_ref().unchecked_ref()).unwrap();
+                        
+                        Msg::None
+                    })} />
                 </div>
                 <div>
                     <span>{"JSON: "}</span>
-                    <textarea id="json" 
-                        width="800" 
-                        height="600" 
-                        onchange={ctx.link().callback(|e: Event| Msg::JsonChanged {value: e.target_unchecked_into::<HtmlInputElement>().value()})} 
+                    <textarea id="json"
+                        width="800"
+                        height="600"
+                        onchange={ctx.link().callback(|e: Event| Msg::JsonChanged {value: e.target_unchecked_into::<HtmlInputElement>().value()})}
                         value={self.json.clone()}/>
                 </div>
             </div>
@@ -311,8 +332,17 @@ impl Component for App {
             }
             Msg::SaveToJson => {
                 self.json = self.shape_storage.serialize_to_json();
-                let a = window().unwrap().document().unwrap().create_element("a").unwrap();
-                a.set_attribute("href", &format!("data:text/json;charset=utf-8,{}", self.json.clone())).unwrap();
+                let a = window()
+                    .unwrap()
+                    .document()
+                    .unwrap()
+                    .create_element("a")
+                    .unwrap();
+                a.set_attribute(
+                    "href",
+                    &format!("data:text/json;charset=utf-8,{}", self.json.clone()),
+                )
+                .unwrap();
                 a.set_attribute("download", "shapes.json").unwrap();
                 let a_element = a.dyn_into::<HtmlElement>().unwrap();
                 a_element.click();
@@ -320,12 +350,10 @@ impl Component for App {
 
                 true
             }
-            Msg::LoadFromJson => {
-                if self.json.is_empty() {
-                    return false;
-                }
-
-                self.shape_storage.deserialize_from_json(&self.json);
+            Msg::LoadFromJson { value } => {
+                log::info!("value: {}", &value);
+                self.shape_storage.deserialize_from_json(&value);
+                self.json = value;
 
                 true
             }
@@ -334,6 +362,7 @@ impl Component for App {
 
                 true
             }
+            Msg::None => false,
         }
     }
 
